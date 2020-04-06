@@ -1,0 +1,77 @@
+#versio, del formato del archivo compose 
+version: '3.7'
+#arreglo de todos los contenedores o servicios
+services:
+    config-server:
+        image: config-server:v1
+        ports:
+            - "8888:8888"
+        #para que permita reniciar siempre  cuanoo se necesite, o cuando ocurre una excepcion    
+        restart: always
+        #indicar que va estar dentro de la red o network que se ha creado
+        networks: 
+            - springcloud
+
+    servicio-eureka-server:
+        image: servicio-eureka-server:v1
+        ports:
+            - "8761:8761"
+        restart: always
+        networks: 
+            - springcloud
+
+    microservicios-mysql8:
+        image: mysql:8
+        ports:
+            - "3306:3306"  
+        restart: always
+        networks: 
+            - springcloud
+        #variables de entorno
+        environment: 
+            MYSQL_DATABASE: db_springboot_cloud
+            MYSQL_ROOT_PASSWORD: mysqldb
+
+    servicio-productos:
+        image: servicio-productos:v1
+        restart: always
+        networks: 
+            - springcloud
+        #Para listar la dependencias de este servicio, es decir de que otros servicio depende
+        depends_on: 
+            - config-server
+            - servicio-eureka-server
+            - microservicios-mysql8
+
+    servicio-items:
+        image: servicio-items:v1
+        ports:
+            - "8002:8002"
+            - "8005:8005"
+            - "8007:8007"
+        restart: always
+        networks: 
+            - springcloud
+        #Para listar la dependencias de este servicio, es decir de que otros servicio depende
+        depends_on: 
+            - config-server
+            - servicio-eureka-server
+            - servicio-productos
+    
+    servicio-zuul-server:
+        image: servicio-zuul-server:v1
+        ports:
+            - "8090:8090"
+        restart: always
+        networks: 
+            - springcloud
+        #los servicio de cual depende porque Zuul ya que es un gateway, es un poxy que consume tambien estos servicios, los clients
+        depends_on: 
+            - config-server
+            - servicio-eureka-server
+            - servicio-productos
+            - servicio-items
+           
+#aca se crea el network si no existe
+networks: 
+    springcloud:
